@@ -8,7 +8,7 @@ function App() {
 
   return (
     <>
-      <h1>Work Os Auth Kit Example</h1>
+      <h1>WorkOS AuthKit Example</h1>
       <div className="card">
         <button onClick={() => addOne()}>count is {count}</button>
         <p>

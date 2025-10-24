@@ -65,7 +65,7 @@ If you will be adding frontend code, add a peer dependency on React in package.j
 
 ---
 
-# Convex Work Os Auth Kit Component
+# Convex WorkOS AuthKit Component
 
 [![npm version](https://badge.fury.io/js/@example%2Fwork-os-auth-kit.svg)](https://badge.fury.io/js/@example%2Fwork-os-auth-kit)
 

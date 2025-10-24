@@ -1,6 +1,6 @@
 {
   "name": "@convex-dev/workos-authkit",
-  "description": "A work os auth kit component for Convex.",
+  "description": "A WorkOS AuthKit component for Convex.",
   "repository": "github:get-convex/workos-authkit",
   "homepage": "https://github.com/get-convex/workos-authkit#readme",
   "bugs": {
@@ -91,5 +91,8 @@
     "vitest": "^3.2.4"
   },
   "types": "./dist/client/index.d.ts",
-  "module": "./dist/client/index.js"
+  "module": "./dist/client/index.js",
+  "dependencies": {
+    "@workos-inc/node": "^7.71.0"
+  }
 }
