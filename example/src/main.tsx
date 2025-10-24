@@ -1,8 +1,10 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { ConvexProvider, ConvexReactClient } from "convex/react";
+import { ConvexReactClient } from "convex/react";
 import App from "./App.tsx";
 import "./index.css";
+import { AuthKitProvider, useAuth } from "@workos-inc/authkit-react";
+import { ConvexProviderWithAuthKit } from "@convex-dev/workos";
 
 const address = import.meta.env.VITE_CONVEX_URL;
 
@@ -10,8 +12,13 @@ const convex = new ConvexReactClient(address);
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <ConvexProvider client={convex}>
-      <App />
-    </ConvexProvider>
+    <AuthKitProvider
+      clientId={import.meta.env.VITE_WORKOS_CLIENT_ID}
+      redirectUri={import.meta.env.VITE_WORKOS_REDIRECT_URI}
+    >
+      <ConvexProviderWithAuthKit client={convex} useAuth={useAuth}>
+        <App />
+      </ConvexProviderWithAuthKit>
+    </AuthKitProvider>
   </StrictMode>
 );

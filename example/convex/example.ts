@@ -1,8 +1,17 @@
-import { mutation } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
 import { components } from "./_generated/api";
 import { WorkOSAuthKit } from "@convex-dev/workos-authkit";
 
 const workOSAuthKit = new WorkOSAuthKit(components.workOSAuthKit, {});
+
+export const getCurrentUser = query({
+  args: {},
+  handler: async (ctx, _args) => {
+    const user = await ctx.auth.getUserIdentity();
+    console.log("user", user);
+    return user;
+  },
+});
 
 export const addOne = mutation({
   args: {},
