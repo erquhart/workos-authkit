@@ -1,14 +1,17 @@
 import "./App.css";
-import { useMutation, useQuery } from "convex/react";
+import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { useAuth } from "@workos-inc/authkit-react";
 
 function App() {
-  const user = useQuery(api.example.getCurrentUser);
   const count = useQuery(api.example.count, { name: "accomplishments" });
   const addOne = useMutation(api.example.addOne);
-  const { signIn, signOut, user: authKitUser } = useAuth();
-  console.log("authKitUser", authKitUser);
+  const { signIn, signOut } = useAuth();
+  const { isAuthenticated } = useConvexAuth();
+  const user = useQuery(
+    api.example.getCurrentUser,
+    isAuthenticated ? {} : "skip"
+  );
 
   return (
     <>

@@ -8,7 +8,7 @@ import { ConvexProviderWithAuthKit } from "@convex-dev/workos";
 
 const address = import.meta.env.VITE_CONVEX_URL;
 
-const convex = new ConvexReactClient(address);
+const convex = new ConvexReactClient(address, { verbose: true });
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
