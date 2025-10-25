@@ -93,8 +93,11 @@
   "types": "./dist/client/index.d.ts",
   "module": "./dist/client/index.js",
   "dependencies": {
+    "@convex-dev/workflow": "^0.2.7",
     "@convex-dev/workos": "^0.0.1",
+    "@convex-dev/workpool": "^0.2.19",
     "@workos-inc/authkit-react": "^0.13.0",
-    "@workos-inc/node": "^7.71.0"
+    "@workos-inc/node": "^7.71.0",
+    "convex-helpers": "^0.1.104"
   }
 }

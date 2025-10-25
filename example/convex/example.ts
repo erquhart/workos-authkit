@@ -8,7 +8,6 @@ export const getCurrentUser = query({
   args: {},
   handler: async (ctx, _args) => {
     const user = await ctx.auth.getUserIdentity();
-    console.log("user", user);
     return user;
   },
 });
