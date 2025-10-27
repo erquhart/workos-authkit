@@ -1,4 +1,5 @@
 import type {
+  Auth,
   Expand,
   FunctionArgs,
   FunctionReference,
@@ -11,18 +12,21 @@ import type { GenericId } from "convex/values";
 // Type utils follow
 
 export type RunQueryCtx = {
+  auth: Auth;
   runQuery: <Query extends FunctionReference<"query", "internal">>(
     query: Query,
     args: FunctionArgs<Query>
   ) => Promise<FunctionReturnType<Query>>;
 };
 export type RunMutationCtx = RunQueryCtx & {
+  auth: Auth;
   runMutation: <Mutation extends FunctionReference<"mutation", "internal">>(
     mutation: Mutation,
     args: FunctionArgs<Mutation>
   ) => Promise<FunctionReturnType<Mutation>>;
 };
 export type RunActionCtx = RunMutationCtx & {
+  auth: Auth;
   runAction<Action extends FunctionReference<"action", "internal">>(
     action: Action,
     args: FunctionArgs<Action>
