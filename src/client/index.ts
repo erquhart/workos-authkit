@@ -1,4 +1,5 @@
 import {
+  type AuthConfig,
   type FunctionReference,
   type GenericDataModel,
   type GenericMutationCtx,
@@ -67,6 +68,24 @@ export class AuthKit<DataModel extends GenericDataModel> {
     };
     this.workos = new WorkOS(this.config.apiKey);
   }
+
+  getAuthConfigProviders = () =>
+    [
+      {
+        type: "customJwt",
+        issuer: `https://api.workos.com/`,
+        algorithm: "RS256",
+        jwks: `https://api.workos.com/sso/jwks/${this.config.clientId}`,
+        applicationID: this.config.clientId,
+      },
+      {
+        type: "customJwt",
+        issuer: `https://api.workos.com/user_management/${this.config.clientId}`,
+        algorithm: "RS256",
+        jwks: `https://api.workos.com/sso/jwks/${this.config.clientId}`,
+      },
+    ] satisfies AuthConfig["providers"];
+
   async getAuthUser(ctx: RunQueryCtx) {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {

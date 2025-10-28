@@ -8,7 +8,7 @@
  * @module
  */
 
-import type * as example from "../example.js";
+import type * as auth from "../auth.js";
 import type * as http from "../http.js";
 
 import type {
@@ -26,7 +26,7 @@ import type {
  * ```
  */
 declare const fullApi: ApiFromModules<{
-  example: typeof example;
+  auth: typeof auth;
   http: typeof http;
 }>;
 declare const fullApiWithMounts: typeof fullApi;

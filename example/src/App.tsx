@@ -6,10 +6,7 @@ import { useAuth } from "@workos-inc/authkit-react";
 function App() {
   const { signIn, signOut } = useAuth();
   const { isAuthenticated } = useConvexAuth();
-  const user = useQuery(
-    api.example.getCurrentUser,
-    isAuthenticated ? {} : "skip"
-  );
+  const user = useQuery(api.auth.getCurrentUser, isAuthenticated ? {} : "skip");
 
   return (
     <>
