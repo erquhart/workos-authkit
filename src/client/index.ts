@@ -17,16 +17,12 @@ type Options = {
   authFunctions?: AuthFunctions;
   clientId?: string;
   apiKey?: string;
-  apiSecret?: string;
   webhookSecret?: string;
   webhookPath?: string;
   additionalEventTypes?: WorkOSEvent["event"][];
   logLevel?: "DEBUG";
 };
-type Config = SetRequired<
-  Options,
-  "clientId" | "apiKey" | "apiSecret" | "webhookSecret"
->;
+type Config = SetRequired<Options, "clientId" | "apiKey" | "webhookSecret">;
 
 export type AuthFunctions = {
   authKitOnEvent?: FunctionReference<
@@ -51,7 +47,6 @@ export class AuthKit<DataModel extends GenericDataModel> {
   ) {
     const clientId = options?.clientId ?? process.env.WORKOS_CLIENT_ID;
     const apiKey = options?.apiKey ?? process.env.WORKOS_API_KEY;
-    const apiSecret = options?.apiSecret ?? process.env.WORKOS_SECRET;
     const webhookSecret =
       options?.webhookSecret ?? process.env.WORKOS_WEBHOOK_SECRET;
     if (!clientId) {
@@ -60,9 +55,6 @@ export class AuthKit<DataModel extends GenericDataModel> {
     if (!apiKey) {
       throw new Error("WORKOS_API_KEY is not set");
     }
-    if (!apiSecret) {
-      throw new Error("WORKOS_SECRET is not set");
-    }
     if (!webhookSecret) {
       throw new Error("WORKOS_WEBHOOK_SECRET is not set");
     }
@@ -70,7 +62,6 @@ export class AuthKit<DataModel extends GenericDataModel> {
       ...options,
       clientId,
       apiKey,
-      apiSecret,
       webhookSecret,
       webhookPath: options?.webhookPath ?? "/workos/webhook",
     };

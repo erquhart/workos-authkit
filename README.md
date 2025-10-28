@@ -138,7 +138,7 @@ export const { authKitOnEvent } = authKit.onEvent(async (ctx, event) => {
 
 The component can handle any WorkOS event type. WorkOS docs provides a [complete
 list of events](https://workos.com/docs/events). To handle additional event types,
-they must be selected in your webhook configuration and added to your AuthKit
+they must be selected in your [webhook configuration](#configure-webhooks) and added to your AuthKit
 component configuration via the `additionalEventTypes` option.
 
 ```ts
