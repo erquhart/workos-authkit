@@ -1,4 +1,4 @@
-# Convex Durable Workflows
+# Convex WorkOS AuthKit
 
 [![npm version](https://badge.fury.io/js/@convex-dev%2Fworkos-authkit.svg?)](https://badge.fury.io/js/@convex-dev%2Fworkos-authkit)
 
@@ -28,13 +28,12 @@ Then follow the steps below to set up user data syncing and event handling.
 User data syncing requires webhooks to be configured in your WorkOS project.
 
 Select Webhooks from the left sidebar in your WorkOS project, and create a new
-webhook.
+webhook with the following settings:
 
-**Endpoint URL**: `https://<your-convex-deployment>.convex.site/workos/webhook`
+- **Endpoint URL**: `https://<your-convex-deployment>.convex.site/workos/webhook`
+- **Events**: `user.created`, `user.updated`, `user.deleted`
 
-**Events**: `user.created`, `user.updated`, `user.deleted`
-
-![Webhook configuration](https://raw.githubusercontent.com/get-convex/better-auth/refs/heads/main/assets/webhook-configuration.png)
+![Webhook configuration](https://raw.githubusercontent.com/erquhart/workos-authkit/refs/heads/main/assets/webhook-configuration.png)
 
 ## Installation
 
