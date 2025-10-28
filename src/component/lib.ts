@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import {
   internalAction,
   internalMutation,
+  internalQuery,
   mutation,
   query,
 } from "./_generated/server.js";
@@ -12,7 +13,7 @@ import type { FunctionHandle } from "convex/server";
 import { Workpool } from "@convex-dev/workpool";
 import schema from "./schema.js";
 
-const webhookWorkpool = new Workpool(components.webhookWorkpool, {
+const eventWorkpool = new Workpool(components.eventWorkpool, {
   maxParallelism: 1,
 });
 
@@ -27,68 +28,39 @@ export const enqueueWebhookEvent = mutation({
     logLevel: v.optional(v.literal("DEBUG")),
   },
   handler: async (ctx, args) => {
-    await webhookWorkpool.enqueueMutation(
-      ctx,
-      internal.lib.processWebhookEvent,
-      args
-    );
-  },
-});
-
-export const processWebhookEvent = internalMutation({
-  args: {
-    apiKey: v.string(),
-    eventId: v.string(),
-    event: v.string(),
-    updatedAt: v.optional(v.string()),
-    onEventHandle: v.optional(v.string()),
-    eventTypes: v.optional(v.array(v.string())),
-    logLevel: v.optional(v.literal("DEBUG")),
-  },
-  handler: async (ctx, args) => {
-    const dbEvent = await ctx.db
-      .query("events")
-      .withIndex("eventId", (q) => q.eq("eventId", args.eventId))
-      .unique();
-    if (dbEvent) {
-      console.log("event already processed", args.eventId);
-      return;
-    }
-    const cursor = await ctx.db.query("events").order("desc").first();
-    await ctx.db.insert("events", {
-      eventId: args.eventId,
-      event: args.event,
-      updatedAt: args.updatedAt,
-    });
-    await ctx.scheduler.runAfter(0, internal.lib.updateEvents, {
+    await eventWorkpool.cancelAll(ctx);
+    await eventWorkpool.enqueueAction(ctx, internal.lib.updateEvents, {
       apiKey: args.apiKey,
       onEventHandle: args.onEventHandle,
       eventTypes: args.eventTypes,
       logLevel: args.logLevel,
-      cursor: cursor
-        ? {
-            eventId: cursor.eventId,
-          }
-        : undefined,
     });
+  },
+});
+
+export const getCursor = internalQuery({
+  args: {},
+  returns: v.union(v.string(), v.null()),
+  handler: async (ctx) => {
+    const lastProcessedEvent = await ctx.db
+      .query("events")
+      .order("desc")
+      .first();
+    return lastProcessedEvent?.eventId;
   },
 });
 
 export const updateEvents = internalAction({
   args: {
     apiKey: v.string(),
-    cursor: v.optional(
-      v.object({
-        eventId: v.string(),
-      })
-    ),
     onEventHandle: v.optional(v.string()),
     eventTypes: v.optional(v.array(v.string())),
     logLevel: v.optional(v.literal("DEBUG")),
   },
   handler: async (ctx, args) => {
     const workos = new WorkOS(args.apiKey);
-    let nextCursor = args.cursor?.eventId;
+    const cursor = await ctx.runQuery(internal.lib.getCursor);
+    let nextCursor = cursor ?? undefined;
     const eventTypes = [
       "user.created" as const,
       "user.updated" as const,
@@ -100,19 +72,13 @@ export const updateEvents = internalAction({
     let rangeStart = nextCursor
       ? undefined
       : new Date(Date.now() - 1000 * 60 * 5).toISOString();
-    console.log("eventTypes", eventTypes);
-    console.log("nextCursor", nextCursor);
-    console.log("rangeStart", rangeStart);
     do {
       const { data, listMetadata } = await workos.events.listEvents({
         events: eventTypes,
         after: nextCursor,
         rangeStart,
       });
-      console.log("data", data);
-      console.log("listMetadata", listMetadata);
       for (const event of data) {
-        console.log("processing event", event);
         await ctx.runMutation(internal.lib.processEvent, {
           event,
           logLevel: args.logLevel,
@@ -137,10 +103,22 @@ export const processEvent = internalMutation({
     onEventHandle: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    console.log("processEvent", args);
     if (args.logLevel === "DEBUG") {
       console.log("processing event", args.event);
     }
+    const dbEvent = await ctx.db
+      .query("events")
+      .withIndex("eventId", (q) => q.eq("eventId", args.event.id))
+      .unique();
+    if (dbEvent) {
+      console.log("event already processed", args.event.id);
+      return;
+    }
+    await ctx.db.insert("events", {
+      eventId: args.event.id,
+      event: args.event.event,
+      updatedAt: args.event.data.updatedAt,
+    });
     const event = args.event as WorkOSEvent;
     switch (event.event) {
       case "user.created": {

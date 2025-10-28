@@ -26,7 +26,8 @@ export const { authKitOnEvent } = authKit.onEvent(async (ctx, event) => {
         .withIndex("authId", (q) => q.eq("authId", event.data.id))
         .unique();
       if (!user) {
-        throw new Error(`User not found: ${event.data.id}`);
+        console.warn(`User not found: ${event.data.id}`);
+        break;
       }
       await ctx.db.patch(user._id, {
         email: event.data.email,
@@ -40,7 +41,8 @@ export const { authKitOnEvent } = authKit.onEvent(async (ctx, event) => {
         .withIndex("authId", (q) => q.eq("authId", event.data.id))
         .unique();
       if (!user) {
-        throw new Error(`User not found: ${event.data.id}`);
+        console.warn(`User not found: ${event.data.id}`);
+        break;
       }
       await ctx.db.delete(user._id);
       break;

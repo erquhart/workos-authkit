@@ -138,6 +138,7 @@ export class AuthKit<DataModel extends GenericDataModel> {
           updatedAt:
             "updated_at" in event ? (event.updated_at as string) : undefined,
           eventTypes: this.config.additionalEventTypes,
+          logLevel: this.config.logLevel,
         });
         return new Response("OK", { status: 200 });
       }),
