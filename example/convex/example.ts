@@ -10,6 +10,7 @@ export const authKit = new AuthKit<DataModel>(components.workOSAuthKit, {
   additionalEventTypes: ["session.created"],
 });
 
+// Optionally sync user data to app tables for direct querying
 export const { authKitOnEvent } = authKit.onEvent(async (ctx, event) => {
   switch (event.event) {
     case "user.created": {
@@ -47,6 +48,8 @@ export const { authKitOnEvent } = authKit.onEvent(async (ctx, event) => {
       await ctx.db.delete(user._id);
       break;
     }
+
+    // Handle any event type
     case "session.created": {
       console.log("onCreateSession", event);
       break;

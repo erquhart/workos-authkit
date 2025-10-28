@@ -1,129 +1,225 @@
-# Convex Component Template
+# Convex Durable Workflows
 
-This is a Convex component, ready to be published on npm.
-
-To create your own component:
-
-1. Run `node rename.mjs` to rename everything to your component's name.
-1. Write code in src/component for your component.
-1. Write code in src/client for the Class that interfaces with the component.
-1. Write example usage in example/convex/example.ts.
-1. Delete the text in this readme until `---` and flesh out the README.
-1. Publish to npm with `npm run alpha` or `npm run release`.
-
-To develop your component run a dev process in the example project:
-
-```sh
-npm i
-npm run dev
-```
-
-`npm i` will do the install and an initial build.
-`npm run dev` will start a file watcher to re-build the component, as well as
-the example project frontend and backend, which does codegen and installs the
-component.
-
-Modify the schema and index files in src/component/ to define your component.
-
-Write a client for using this component in src/client/index.ts.
-
-If you won't be adding frontend code (e.g. React components) to this
-component you can delete the following:
-
-- "./react" exports in package.json
-- the "src/react/" directory
-
-If you will be adding frontend code, add a peer dependency on React in package.json.
-
-### Component Directory structure
-
-```
-.
-├── README.md           documentation of your component
-├── package.json        component name, version number, other metadata
-├── package-lock.json   Components are like libraries, package-lock.json
-│                       is .gitignored and ignored by consumers.
-├── src
-│   ├── component/
-│   │   ├── _generated/ Files here are generated for the component.
-│   │   ├── convex.config.ts  Name your component here and use other components
-│   │   ├── lib.ts    Define functions here and in new files in this directory
-│   │   └── schema.ts   schema specific to this component
-│   ├── client/index.ts "Thick" client code goes here.
-│   └── react/          Code intended to be used on the frontend goes here.
-│       │               Your are free to delete this if this component
-│       │               does not provide code.
-│       └── index.ts
-├── example/            example Convex app that uses this component
-│   └── convex/
-│       ├── _generated/       Files here are generated for the example app.
-│       ├── convex.config.ts  Imports and uses this component
-│       ├── myFunctions.ts    Functions that use the component
-│       └── schema.ts         Example app schema
-└── dist/               Publishing artifacts will be created here.
-```
-
----
-
-# Convex WorkOS AuthKit Component
-
-[![npm version](https://badge.fury.io/js/@example%2Fwork-os-auth-kit.svg)](https://badge.fury.io/js/@example%2Fwork-os-auth-kit)
+[![npm version](https://badge.fury.io/js/@convex-dev%2Fworkos-authkit.svg?)](https://badge.fury.io/js/@convex-dev%2Fworkos-authkit)
 
 <!-- START: Include on https://convex.dev/components -->
 
-- [ ] What is some compelling syntax as a hook?
-- [ ] Why should you use this component?
-- [ ] Links to docs / other resources?
+This component is the official way to integrate WorkOS AuthKit authentication with your Convex project.
 
-Found a bug? Feature request? [File it here](https://github.com/get-convex/workos-authkit/issues).
+Features:
 
-## Pre-requisite: Convex
+- Sync user data from WorkOS to your Convex database reliably and durably.
+- Respond to events with Convex functions.
 
-You'll need an existing Convex project to use the component.
-Convex is a hosted backend platform, including a database, serverless functions,
-and a ton more you can learn about [here](https://docs.convex.dev/get-started).
+See [example](./example) for a demo of how to incorporate this component into your application.
 
-Run `npm create convex` or follow any of the [quickstarts](https://docs.convex.dev/home) to set one up.
+Open a [GitHub issue](https://github.com/get-convex/workos-authkit/issues) with
+any feedback or bugs you find.
+
+## Prerequisites
+
+Follow the [Convex WorkOS AuthKit guide](https://docs.convex.dev/auth/authkit/)
+to set up a working project with WorkOS AuthKit.
+
+Then follow the steps below to set up user data syncing and event handling.
+
+## Configure webhooks
+
+User data syncing requires webhooks to be configured in your WorkOS project.
+
+Select Webhooks from the left sidebar in your WorkOS project, and create a new
+webhook.
+
+**Endpoint URL**: `https://<your-convex-deployment>.convex.site/workos/webhook`
+
+**Events**: `user.created`, `user.updated`, `user.deleted`
+
+![Webhook configuration](https://raw.githubusercontent.com/get-convex/better-auth/refs/heads/main/assets/webhook-configuration.png)
 
 ## Installation
 
-Install the component package:
+First, add `@convex-dev/workos-authkit` to your Convex project:
 
 ```sh
 npm install @convex-dev/workos-authkit
 ```
 
-Create a `convex.config.ts` file in your app's `convex/` folder and install the component by calling `use`:
+Then, install the component within your `convex/convex.config.ts` file:
 
 ```ts
 // convex/convex.config.ts
-import { defineApp } from "convex/server";
 import workOSAuthKit from "@convex-dev/workos-authkit/convex.config";
+import { defineApp } from "convex/server";
 
 const app = defineApp();
 app.use(workOSAuthKit);
-
 export default app;
+```
+
+Finally, create a Convex AuthKit client within your `convex/` folder, and point it
+to the installed component:
+
+```ts
+// convex/auth.ts
+import { AuthKit } from "@convex-dev/workos-authkit";
+import { components } from "./_generated/api";
+import type { DataModel } from "./_generated/dataModel";
+
+export const authKit = new AuthKit<DataModel>(components.workOSAuthKit);
 ```
 
 ## Usage
 
-```ts
-import { components } from "./_generated/api";
-import { WorkOSAuthKit } from "@convex-dev/workos-authkit";
+User create/update/delete in WorkOS will be automatically synced by the
+component.
 
-const workOSAuthKit = new WorkOSAuthKit(components.workOSAuthKit, {
-  ...options,
+Use the `getAuthUser` component method to get the current authenticated user
+object:
+
+```ts
+export const getCurrentUser = query({
+  args: {},
+  handler: async (ctx, _args) => {
+    const user = await authKit.getAuthUser(ctx);
+    return user;
+  },
 });
 ```
 
-See more example usage in [example.ts](./example/convex/example.ts).
+## Events
+
+The AuthKit component can be configured to handle events from WorkOS. This is
+useful for running code when a user is created, updated, or deleted in WorkOS,
+or in response to any other provided event.
+
+By default the component will handle the following events:
+
+- `user.created`
+- `user.updated`
+- `user.deleted`
+
+```ts
+// convex/auth.ts
+import { AuthKit, type AuthFunctions } from "@convex-dev/workos-authkit";
+import { components, internal } from "./_generated/api";
+import type { DataModel } from "./_generated/dataModel";
+
+// Get a typed object of internal Convex functions exported by this file
+const authFunctions: AuthFunctions = internal.auth;
+
+const authKit = new AuthKit<DataModel>(components.workOSAuthKit, {
+  authFunctions,
+});
+
+// create `authKitOnEvent` as a named export
+export const { authKitOnEvent } = authKit.onEvent(async (ctx, event) => {
+  switch (event.event) {
+    case "user.created": {
+      // ctx is a mutation context and event.data is typed
+      await ctx.db.insert("todoLists", {
+        name: `${event.data.firstName}'s Todo List`,
+        userId: event.data.id,
+      });
+      break;
+    }
+  }
+});
+```
+
+### Additional event types
+
+The component can handle any WorkOS event type. WorkOS docs provides a [complete
+list of events](https://workos.com/docs/events). To handle additional event types,
+they must be selected in your webhook configuration and added to your AuthKit
+component configuration via the `additionalEventTypes` option.
+
+```ts
+// convex/auth.ts
+import { AuthKit, type AuthFunctions } from "@convex-dev/workos-authkit";
+import { components, internal } from "./_generated/api";
+import type { DataModel } from "./_generated/dataModel";
+
+const authFunctions: AuthFunctions = internal.auth;
+
+const authKit = new AuthKit<DataModel>(components.workOSAuthKit, {
+  authFunctions,
+  additionalEventTypes: ["session.created", "session.revoked"],
+});
+
+export const { authKitOnEvent } = authKit.onEvent(async (ctx, event) => {
+  switch (event.event) {
+    case "session.created": {
+      // do something with the session data
+      break;
+    }
+    case "session.revoked": {
+      // do something with the session data
+      break;
+    }
+  }
+});
+```
+
+## User data
+
+Most apps will need to control their user schema and be able to query directly
+against a users table. The AuthKit component has it's own user table with user
+data from WorkOS. You can think of this as auth metadata for your users, but
+you'll likely want to extend this with additional data from your app.
+
+A common pattern for this is to create your own users table with a reference to
+the AuthKit user table, using the user events to do any necessary syncing.
+
+```ts
+// convex/auth.ts
+import { AuthKit, type AuthFunctions } from "@convex-dev/workos-authkit";
+import { components, internal } from "./_generated/api";
+import type { DataModel } from "./_generated/dataModel";
+
+const authFunctions: AuthFunctions = internal.auth;
+
+const authKit = new AuthKit<DataModel>(components.workOSAuthKit, {
+  authFunctions,
+});
+
+export const { authKitOnEvent } = authKit.onEvent(async (ctx, event) => {
+  switch (event.event) {
+    case "user.created": {
+      await ctx.db.insert("users", {
+        authId: event.data.id,
+        name: `${event.data.firstName} ${event.data.lastName}`,
+        isSubscribed: false,
+      });
+      return;
+    }
+    case "user.updated": {
+      const user = await ctx.db
+        .query("users")
+        .withIndex("authId", (q) => q.eq("authId", event.data.id))
+        .unique();
+      if (!user) {
+        console.warn(`User not found: ${event.data.id}`);
+        return;
+      }
+      await ctx.db.patch(user._id, {
+        name: `${event.data.firstName} ${event.data.lastName}`,
+      });
+      return;
+    }
+    case "user.deleted": {
+      const user = await ctx.db
+        .query("users")
+        .withIndex("authId", (q) => q.eq("authId", event.data.id))
+        .unique();
+      if (!user) {
+        console.warn(`User not found: ${event.data.id}`);
+        return;
+      }
+      await ctx.db.delete(user._id);
+      return;
+    }
+  }
+});
+```
 
 <!-- END: Include on https://convex.dev/components -->
-
-Run the example:
-
-```sh
-npm i
-npm run dev
-```
