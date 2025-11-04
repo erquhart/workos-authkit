@@ -10,6 +10,20 @@ export const authKit = new AuthKit<DataModel>(components.workOSAuthKit, {
   additionalEventTypes: ["session.created"],
 });
 
+export const { authKitAction } = authKit.actions({
+  // Optionally implement logic to allow/deny user registration
+  userRegistration: async (_ctx, action, response) => {
+    if (action.userData.email.endsWith("@gmail.com")) {
+      return response.deny("Gmail accounts are not allowed");
+    }
+    return response.allow();
+  },
+  // Optionally implement logic to allow/deny authentication
+  authentication: async (_ctx, action, response) => {
+    return response.allow();
+  },
+});
+
 // Optionally sync user data to app tables for direct querying
 export const { authKitOnEvent } = authKit.onEvent(async (ctx, event) => {
   switch (event.event) {
