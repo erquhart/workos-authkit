@@ -46,7 +46,7 @@ export type AuthFunctions = {
     { action: unknown },
     WorkOSResponsePayload
   >;
-  authKitOnEvent?: FunctionReference<
+  authKitEvent?: FunctionReference<
     "mutation",
     "internal",
     { event: string; data: unknown },
@@ -127,42 +127,28 @@ export class AuthKit<DataModel extends GenericDataModel> {
       id: identity.subject,
     });
   }
-  onEvent(
-    handler: (
+  events<K extends WorkOSEvent["event"]>(opts: {
+    [Key in K]: <
+      E extends Extract<
+        WorkOSEvent,
+        {
+          event: Key;
+        }
+      >,
+    >(
       ctx: GenericMutationCtx<DataModel>,
-      args: WorkOSEvent
-    ) => Promise<void>
-  ) {
+      event: E
+    ) => Promise<void>;
+  }) {
     return {
-      authKitOnEvent: internalMutationGeneric({
+      authKitEvent: internalMutationGeneric({
         args: {
           event: v.string(),
           data: v.record(v.string(), v.any()),
         },
         returns: v.null(),
         handler: async (ctx, args) => {
-          await handler(ctx, args as unknown as WorkOSEvent);
-        },
-      }),
-    };
-  }
-  onAction(
-    handler: (
-      ctx: GenericMutationCtx<DataModel>,
-      action: WorkOSActionContext
-    ) => Promise<WorkOSResponsePayload>
-  ) {
-    return {
-      authKitOnAction: internalMutationGeneric({
-        args: {
-          action: v.record(v.string(), v.any()),
-        },
-        returns: v.record(v.string(), v.any()),
-        handler: async (ctx, args) => {
-          return await handler(
-            ctx,
-            args.action as unknown as WorkOSActionContext
-          );
+          await opts[args.event as K](ctx, args as never);
         },
       }),
     };
@@ -248,10 +234,8 @@ export class AuthKit<DataModel extends GenericDataModel> {
           apiKey: this.config.apiKey,
           eventId: event.id,
           event: event.event,
-          onEventHandle: this.config.authFunctions?.authKitOnEvent
-            ? await createFunctionHandle(
-                this.config.authFunctions.authKitOnEvent
-              )
+          onEventHandle: this.config.authFunctions?.authKitEvent
+            ? await createFunctionHandle(this.config.authFunctions.authKitEvent)
             : undefined,
           updatedAt:
             "updated_at" in event ? (event.updated_at as string) : undefined,

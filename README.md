@@ -119,18 +119,15 @@ const authKit = new AuthKit<DataModel>(components.workOSAuthKit, {
   authFunctions,
 });
 
-// create `authKitOnEvent` as a named export
-export const { authKitOnEvent } = authKit.onEvent(async (ctx, event) => {
-  switch (event.event) {
-    case "user.created": {
-      // ctx is a mutation context and event.data is typed
-      await ctx.db.insert("todoLists", {
-        name: `${event.data.firstName}'s Todo List`,
-        userId: event.data.id,
-      });
-      break;
-    }
-  }
+// create `authKitEvent` as a named export
+export const { authKitEvent } = authKit.events({
+  "user.created": async (ctx, event) => {
+    // ctx is a mutation context and event.data is typed
+    await ctx.db.insert("todoLists", {
+      name: `${event.data.firstName}'s Todo List`,
+      userId: event.data.id,
+    });
+  },
 });
 ```
 
@@ -154,17 +151,13 @@ const authKit = new AuthKit<DataModel>(components.workOSAuthKit, {
   additionalEventTypes: ["session.created", "session.revoked"],
 });
 
-export const { authKitOnEvent } = authKit.onEvent(async (ctx, event) => {
-  switch (event.event) {
-    case "session.created": {
-      // do something with the session data
-      break;
-    }
-    case "session.revoked": {
-      // do something with the session data
-      break;
-    }
-  }
+export const { authKitEvent } = authKit.events({
+  "session.created": async (ctx, event) => {
+    // do something with the session data
+  },
+  "session.revoked": async (ctx, event) => {
+    // do something with the session data
+  },
 });
 ```
 
@@ -190,43 +183,94 @@ const authKit = new AuthKit<DataModel>(components.workOSAuthKit, {
   authFunctions,
 });
 
-export const { authKitOnEvent } = authKit.onEvent(async (ctx, event) => {
-  switch (event.event) {
-    case "user.created": {
-      await ctx.db.insert("users", {
-        authId: event.data.id,
-        name: `${event.data.firstName} ${event.data.lastName}`,
-        isSubscribed: false,
-      });
+export const { authKitEvent } = authKit.events({
+  "user.created": async (ctx, event) => {
+    await ctx.db.insert("users", {
+      authId: event.data.id,
+      email: event.data.email,
+      name: `${event.data.firstName} ${event.data.lastName}`,
+    });
+  },
+  "user.updated": async (ctx, event) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("authId", (q) => q.eq("authId", event.data.id))
+      .unique();
+    if (!user) {
+      console.warn(`User not found: ${event.data.id}`);
       return;
     }
-    case "user.updated": {
-      const user = await ctx.db
-        .query("users")
-        .withIndex("authId", (q) => q.eq("authId", event.data.id))
-        .unique();
-      if (!user) {
-        console.warn(`User not found: ${event.data.id}`);
-        return;
-      }
-      await ctx.db.patch(user._id, {
-        name: `${event.data.firstName} ${event.data.lastName}`,
-      });
+    await ctx.db.patch(user._id, {
+      email: event.data.email,
+      name: `${event.data.firstName} ${event.data.lastName}`,
+    });
+  },
+  "user.deleted": async (ctx, event) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("authId", (q) => q.eq("authId", event.data.id))
+      .unique();
+    if (!user) {
+      console.warn(`User not found: ${event.data.id}`);
       return;
     }
-    case "user.deleted": {
-      const user = await ctx.db
-        .query("users")
-        .withIndex("authId", (q) => q.eq("authId", event.data.id))
-        .unique();
-      if (!user) {
-        console.warn(`User not found: ${event.data.id}`);
-        return;
-      }
-      await ctx.db.delete(user._id);
-      return;
+    await ctx.db.delete(user._id);
+  },
+
+  // Handle any event type
+  "session.created": async (ctx, event) => {
+    console.log("onCreateSession", event);
+  },
+});
+```
+
+## Actions
+
+The AuthKit component can be configured to handle actions from WorkOS. Actions
+allow you to block user registration or authentication based on your own logic.
+Read more about actions in the [WorkOS
+docs](https://workos.com/docs/authkit/actions).
+
+## Configuration
+
+1. Configure actions in your WorkOS dashboard.
+2. Set the endpoint URL for your action(s) to
+   `https://<your-convex-deployment>.convex.site/workos/action`
+3. Copy the action signing secret from the dashboard and set it in your
+   environment variables as `WORKOS_ACTION_SECRET`.
+
+![Action
+configuration](https://raw.githubusercontent.com/erquhart/workos-authkit/refs/heads/main/assets/action-configuration.png)
+
+## Usage
+
+Action handlers are defined using the `actions` method on the AuthKit component.
+AuthKit actions must return a response payload that allows or denies the action,
+so a response object is provided to the action handler with `allow` and `deny`
+methods.
+
+```ts
+// convex/auth.ts
+import { AuthKit, type AuthFunctions } from "@convex-dev/workos-authkit";
+import { components, internal } from "./_generated/api";
+import type { DataModel } from "./_generated/dataModel";
+
+const authFunctions: AuthFunctions = internal.auth;
+
+const authKit = new AuthKit<DataModel>(components.workOSAuthKit, {
+  authFunctions,
+});
+
+export const { authKitAction } = authKit.actions({
+  authentication: async (_ctx, _action, response) => {
+    return response.allow();
+  },
+  userRegistration: async (_ctx, action, response) => {
+    if (action.userData.email.endsWith("@gmail.com")) {
+      return response.deny("Gmail accounts are not allowed");
     }
-  }
+    return response.allow();
+  },
 });
 ```
 

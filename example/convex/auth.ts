@@ -19,56 +19,49 @@ export const { authKitAction } = authKit.actions({
     return response.allow();
   },
   // Optionally implement logic to allow/deny authentication
-  authentication: async (_ctx, action, response) => {
+  authentication: async (_ctx, _action, response) => {
     return response.allow();
   },
 });
 
-// Optionally sync user data to app tables for direct querying
-export const { authKitOnEvent } = authKit.onEvent(async (ctx, event) => {
-  switch (event.event) {
-    case "user.created": {
-      await ctx.db.insert("users", {
-        authId: event.data.id,
-        email: event.data.email,
-        name: `${event.data.firstName} ${event.data.lastName}`,
-      });
-      break;
+export const { authKitEvent } = authKit.events({
+  "user.created": async (ctx, event) => {
+    await ctx.db.insert("users", {
+      authId: event.data.id,
+      email: event.data.email,
+      name: `${event.data.firstName} ${event.data.lastName}`,
+    });
+  },
+  "user.updated": async (ctx, event) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("authId", (q) => q.eq("authId", event.data.id))
+      .unique();
+    if (!user) {
+      console.warn(`User not found: ${event.data.id}`);
+      return;
     }
-    case "user.updated": {
-      const user = await ctx.db
-        .query("users")
-        .withIndex("authId", (q) => q.eq("authId", event.data.id))
-        .unique();
-      if (!user) {
-        console.warn(`User not found: ${event.data.id}`);
-        break;
-      }
-      await ctx.db.patch(user._id, {
-        email: event.data.email,
-        name: `${event.data.firstName} ${event.data.lastName}`,
-      });
-      break;
+    await ctx.db.patch(user._id, {
+      email: event.data.email,
+      name: `${event.data.firstName} ${event.data.lastName}`,
+    });
+  },
+  "user.deleted": async (ctx, event) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("authId", (q) => q.eq("authId", event.data.id))
+      .unique();
+    if (!user) {
+      console.warn(`User not found: ${event.data.id}`);
+      return;
     }
-    case "user.deleted": {
-      const user = await ctx.db
-        .query("users")
-        .withIndex("authId", (q) => q.eq("authId", event.data.id))
-        .unique();
-      if (!user) {
-        console.warn(`User not found: ${event.data.id}`);
-        break;
-      }
-      await ctx.db.delete(user._id);
-      break;
-    }
+    await ctx.db.delete(user._id);
+  },
 
-    // Handle any event type
-    case "session.created": {
-      console.log("onCreateSession", event);
-      break;
-    }
-  }
+  // Handle any event type
+  "session.created": async (ctx, event) => {
+    console.log("onCreateSession", event);
+  },
 });
 
 export const getCurrentUser = query({
