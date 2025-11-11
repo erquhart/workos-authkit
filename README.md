@@ -64,6 +64,17 @@ app.use(workOSAuthKit);
 export default app;
 ```
 
+Register component webhook routes in `convex/http.ts`:
+
+```ts
+import { httpRouter } from "convex/server";
+import { authKit } from "./auth";
+
+const http = httpRouter();
+authKit.registerRoutes(http);
+export default http;
+```
+
 Finally, create a Convex AuthKit client within your `convex/` folder, and point it
 to the installed component:
 
